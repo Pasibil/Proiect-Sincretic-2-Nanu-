@@ -6,9 +6,9 @@
 </head>
 <body>
     <h1>Control LED + Temperatură</h1>
-    
+
     <p><strong>Temperatura curentă:</strong> {{ temperature }} °C</p>
-    
+
     <p><strong>LED-ul este:</strong> {{ 'Aprins' if led_state else 'Stins' }}</p>
 
     <form method="post">
@@ -31,7 +31,41 @@
         {% endfor %}
     </ul>
 
+    <hr>
+    <h3>Evenimente de inundație:</h3>
+    <ul id="floodList">
+        {% for evt in flood_events %}
+            <li>
+                {{ evt }}
+                <button onclick="deleteFlood({{ loop.index0 }})">Șterge</button>
+            </li>
+        {% endfor %}
+    </ul>
+
     <script>
+        function refreshMessages() {
+            fetch('/get_messages')
+            .then(response => response.json())
+            .then(data => {
+                const list = document.getElementById('msgList');
+                list.innerHTML = '';
+                data.messages.forEach((msg) => {
+                    const li = document.createElement('li');
+                    li.textContent = msg;
+                    list.appendChild(li);
+                });
+            });
+        }
+
+        function deleteFlood(index) {
+            fetch(`/delete_flood/${index}`, { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'deleted') location.reload();
+                else alert('Eroare la ștergerea evenimentului');
+            });
+        }
+
         document.getElementById('msgForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const msg = document.getElementById('msgInput').value.trim();
@@ -45,18 +79,13 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'ok') {
-                    // Actualizare vizuală: adaugă mesajul în listă
-                    const li = document.createElement('li');
-                    li.textContent = msg;
-                    const list = document.getElementById('msgList');
-                    list.insertBefore(li, list.firstChild);
-                    if (list.children.length > 10) {
-                        list.removeChild(list.lastChild);
-                    }
                     document.getElementById('msgInput').value = '';
+                    refreshMessages();
                 }
             });
         });
+
+        document.addEventListener('DOMContentLoaded', refreshMessages);
     </script>
 </body>
 </html>

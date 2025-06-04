@@ -1,11 +1,11 @@
 from flask import Flask, render_template, request, jsonify
-# test
 
 app = Flask(__name__)
 
 current_temp = "N/A"
 led_state = False
-messages = []  # va fi o listă cu maxim 10 mesaje
+messages = []  # maxim 10 mesaje
+flood_events = []  # maxim 10 evenimente de inundatie
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -13,7 +13,6 @@ def index():
 
     if request.method == 'POST':
         action = request.form.get('action')
-        # Aici doar salvăm comanda – clientul local va trebui să o preia
         if action == 'ON':
             led_state = True
         elif action == 'OFF':
@@ -22,7 +21,8 @@ def index():
     return render_template('index.html',
                            temperature=current_temp,
                            led_state=led_state,
-			   messages=messages)
+                           messages=messages,
+                           flood_events=flood_events)
 
 @app.route('/update', methods=['POST'])
 def update_temp():
@@ -45,7 +45,7 @@ def send_message():
     if msg:
         messages.append(msg)
         if len(messages) > 10:
-            messages = messages[-10:]  # păstrează doar ultimele 10
+            messages = messages[-10:]
 
     return jsonify({'status': 'ok'})
 
@@ -53,6 +53,24 @@ def send_message():
 def get_messages():
     return jsonify({'messages': messages})
 
+@app.route('/flood_event', methods=['POST'])
+def flood_event():
+    global flood_events
+    data = request.get_json()
+    evt = data.get('event', '').strip()
+    if evt:
+        flood_events.append(evt)
+        if len(flood_events) > 10:
+            flood_events = flood_events[-10:]
+    return jsonify({'status': 'ok'})
+
+@app.route('/delete_flood/<int:index>', methods=['POST'])
+def delete_flood(index):
+    global flood_events
+    if 0 <= index < len(flood_events):
+        flood_events.pop(index)
+        return jsonify({'status': 'deleted'})
+    return jsonify({'status': 'error'})
 
 if __name__ == '__main__':
     app.run(debug=True)
