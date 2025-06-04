@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="ro">
 <head>
-    <title>Control LED</title>
+    <meta charset="UTF-8">
+    <title>Control LED + Temperatură</title>
 </head>
 <body>
     <h1>Control LED + Temperatură</h1>
@@ -14,5 +15,48 @@
         <button type="submit" name="action" value="ON">Aprinde LED</button>
         <button type="submit" name="action" value="OFF">Stinge LED</button>
     </form>
+
+    <hr>
+
+    <h2>Trimite un mesaj la Arduino</h2>
+    <form id="msgForm">
+        <input type="text" id="msgInput" maxlength="32" required placeholder="Mesaj de trimis...">
+        <button type="submit">Trimite mesaj</button>
+    </form>
+
+    <h3>Ultimele mesaje trimise:</h3>
+    <ul id="msgList">
+        {% for msg in messages %}
+            <li>{{ msg }}</li>
+        {% endfor %}
+    </ul>
+
+    <script>
+        document.getElementById('msgForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const msg = document.getElementById('msgInput').value.trim();
+            if (msg.length === 0) return;
+
+            fetch('/send_message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: msg })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    // Actualizare vizuală: adaugă mesajul în listă
+                    const li = document.createElement('li');
+                    li.textContent = msg;
+                    const list = document.getElementById('msgList');
+                    list.insertBefore(li, list.firstChild);
+                    if (list.children.length > 10) {
+                        list.removeChild(list.lastChild);
+                    }
+                    document.getElementById('msgInput').value = '';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
