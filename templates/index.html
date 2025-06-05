@@ -8,7 +8,7 @@
             fetch('/refresh_lists', { method: 'POST' })
             .then(response => response.json())
             .then(data => {
-                alert('Listele au fost reîmprospătate.');
+                console.log('Listele au fost reîmprospătate.');
                 location.reload();
             })
             .catch(err => alert('Eroare la refresh: ' + err));
@@ -30,7 +30,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'ok') {
-                    alert('Mesaj trimis!');
+                    console.log('Mesaj trimis!');
                     msgInput.value = '';
                     location.reload();
                 } else {
@@ -79,11 +79,12 @@
 
     <script>
         function deleteFlood(index) {
+  	    console.log('Stergerea evenimentului cu indexul:', index);
             fetch('/delete_flood/' + index, { method: 'POST' })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'deleted') {
-                    alert('Eveniment șters.');
+                    console.log('Eveniment șters.');
                     location.reload();
                 } else {
                     alert('Eroare la ștergere.');
