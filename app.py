@@ -1,11 +1,13 @@
 from flask import Flask, render_template, request, jsonify
+import datetime
 
 app = Flask(__name__)
 
+# Variabile globale
 current_temp = "N/A"
 led_state = False
-messages = []  # maxim 10 mesaje
-flood_events = []  # maxim 10 evenimente de inundație
+messages = []         # max 10 mesaje
+flood_events = []     # max 10 evenimente
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -56,10 +58,8 @@ def get_messages():
 @app.route('/flood_event', methods=['POST'])
 def flood_event():
     global flood_events
-    # Nu așteptăm un mesaj explicit, ci doar semnalul flood, așa că adăugăm timestamp
-    import datetime
-    now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    flood_events.append(f"Inundație detectată la {now_str}")
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    flood_events.append(f"Inundație detectată la {now}")
     if len(flood_events) > 10:
         flood_events = flood_events[-10:]
     return jsonify({'status': 'ok'})
@@ -77,4 +77,4 @@ def delete_flood(index):
     return jsonify({'status': 'error'})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False, host='0.0.0.0', port=5000)

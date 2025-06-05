@@ -8,7 +8,6 @@
     <h1>Control LED + Temperatură</h1>
 
     <p><strong>Temperatura curentă:</strong> {{ temperature }} °C</p>
-
     <p><strong>LED-ul este:</strong> {{ 'Aprins' if led_state else 'Stins' }}</p>
 
     <form method="post">
@@ -46,11 +45,11 @@
     <script>
         function refreshMessages() {
             fetch('/get_messages')
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => {
                 const list = document.getElementById('msgList');
                 list.innerHTML = '';
-                data.messages.forEach((msg) => {
+                data.messages.forEach(msg => {
                     const li = document.createElement('li');
                     li.textContent = msg;
                     list.appendChild(li);
@@ -60,7 +59,7 @@
 
         function refreshFloodEvents() {
             fetch('/get_flood_events')
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => {
                 const list = document.getElementById('floodList');
                 list.innerHTML = '';
@@ -69,7 +68,7 @@
                     li.textContent = evt + ' ';
                     const btn = document.createElement('button');
                     btn.textContent = 'Șterge';
-                    btn.onclick = function() { deleteFlood(index); };
+                    btn.onclick = () => deleteFlood(index);
                     li.appendChild(btn);
                     list.appendChild(li);
                 });
@@ -78,12 +77,12 @@
 
         function deleteFlood(index) {
             fetch(`/delete_flood/${index}`, { method: 'POST' })
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => {
                 if (data.status === 'deleted') {
                     refreshFloodEvents();
                 } else {
-                    alert('Eroare la ștergerea evenimentului');
+                    alert('Eroare la ștergere!');
                 }
             });
         }
@@ -91,14 +90,14 @@
         document.getElementById('msgForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const msg = document.getElementById('msgInput').value.trim();
-            if (msg.length === 0) return;
+            if (!msg) return;
 
             fetch('/send_message', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: msg })
             })
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => {
                 if (data.status === 'ok') {
                     document.getElementById('msgInput').value = '';
@@ -111,7 +110,6 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             refreshMessages();
-            // flood_events sunt încărcate inițial din server, dar pot fi actualizate oricând cu butonul
         });
     </script>
 </body>
