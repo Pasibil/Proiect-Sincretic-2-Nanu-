@@ -3,11 +3,10 @@ import datetime
 
 app = Flask(__name__)
 
-# Variabile globale
 current_temp = "N/A"
 led_state = False
-messages = []         # max 10 mesaje
-flood_events = []     # max 10 evenimente
+messages = []
+flood_events = []
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -47,7 +46,7 @@ def send_message():
     if msg:
         messages.append(msg)
         if len(messages) > 10:
-            messages[:] = messages[-10:]  # modifică lista globală, nu o reasignează
+            messages[:] = messages[-10:]
 
     return jsonify({'status': 'ok'})
 
@@ -59,12 +58,12 @@ def get_messages():
 def flood_event():
     global flood_events
     data = request.get_json()
-    # Dacă nu trimiți date JSON, poți omite această verificare
-    if data is None or data.get('flood', True):  
+    # Poate veni fără conținut sau doar cu flood=True
+    if data is None or data.get('flood', True):
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         flood_events.append(f"Inundație detectată la {now}")
         if len(flood_events) > 10:
-            flood_events[:] = flood_events[-10:]  # modifică lista globală
+            flood_events[:] = flood_events[-10:]
 
     return jsonify({'status': 'ok'})
 
@@ -79,6 +78,20 @@ def delete_flood(index):
         flood_events.pop(index)
         return jsonify({'status': 'deleted'})
     return jsonify({'status': 'error'})
+
+@app.route('/sync_flood_events', methods=['POST'])
+def sync_flood_events():
+    global flood_events
+    data = request.get_json()
+    if data and 'flood_events' in data:
+        flood_events = data['flood_events'][-10:]
+    return jsonify({'status': 'ok'})
+
+@app.route('/refresh_lists', methods=['POST'])
+def refresh_lists():
+    # Rută care poate fi apelată din interfață pentru a trimite confirmarea de refresh
+    # Actualizarea reală se face periodic în python_local.py
+    return jsonify({'status': 'ok'})
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000)

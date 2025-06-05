@@ -1,130 +1,63 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-    <meta charset="UTF-8">
-    <title>Control LED + Temperatură</title>
+    <meta charset="UTF-8" />
+    <title>Arduino Flask Control</title>
+    <script>
+        function refreshLists() {
+            fetch('/refresh_lists', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                alert('Listele au fost reîmprospătate.');
+                location.reload();
+            })
+            .catch(err => alert('Eroare la refresh: ' + err));
+        }
+    </script>
 </head>
 <body>
-    <h1>Control LED + Temperatură</h1>
+    <h1>Temperatura curentă: {{ temperature }} °C</h1>
 
-    <p><strong>Temperatura curentă:</strong> {{ temperature }} °C</p>
-    <p><strong>LED-ul este:</strong> {{ 'Aprins' if led_state else 'Stins' }}</p>
-
-    <form id="ledForm" method="post">
-        <button type="submit" name="action" value="ON">Aprinde LED</button>
-        <button type="submit" name="action" value="OFF">Stinge LED</button>
+    <h2>LED Control</h2>
+    <form method="POST">
+        <button name="action" value="ON" type="submit">Aprinde LED</button>
+        <button name="action" value="OFF" type="submit">Stinge LED</button>
     </form>
+    <p>Stare LED: {{ 'Aprins' if led_state else 'Stins' }}</p>
 
-    <hr>
-
-    <h2>Trimite un mesaj la Arduino</h2>
-    <form id="msgForm">
-        <input type="text" id="msgInput" maxlength="32" required placeholder="Mesaj de trimis...">
-        <button type="submit">Trimite mesaj</button>
-    </form>
-
-    <h3>Ultimele mesaje trimise:</h3>
-    <ul id="msgList">
+    <h2>Mesaje EEPROM</h2>
+    <ul>
         {% for msg in messages %}
             <li>{{ msg }}</li>
+        {% else %}
+            <li>Nu există mesaje.</li>
         {% endfor %}
     </ul>
 
-    <hr>
-    <h3>Evenimente de inundație:</h3>
-    <button id="refreshFloodBtn" type="button">Reîncarcă evenimentele</button>
-    <ul id="floodList">
+    <h2>Evenimente Inundații</h2>
+    <ul>
         {% for evt in flood_events %}
-            <li>
-                {{ evt }}
-                <button onclick="deleteFlood({{ loop.index0 }})">Șterge</button>
-            </li>
+            <li>{{ evt }} <button onclick="deleteFlood({{ loop.index0 }})">Șterge</button></li>
+        {% else %}
+            <li>Nu există evenimente.</li>
         {% endfor %}
     </ul>
+
+    <button onclick="refreshLists()">Refresh liste</button>
 
     <script>
-        function refreshMessages() {
-            fetch('/get_messages')
-            .then(r => r.json())
-            .then(data => {
-                const list = document.getElementById('msgList');
-                list.innerHTML = '';
-                data.messages.forEach(msg => {
-                    const li = document.createElement('li');
-                    li.textContent = msg;
-                    list.appendChild(li);
-                });
-            });
-        }
-
-        function refreshFloodEvents() {
-            console.log("Buton Reîncarcă evenimente apăsat sau funcția apelată.");
-            fetch('/get_flood_events')
-            .then(r => r.json())
-            .then(data => {
-                const list = document.getElementById('floodList');
-                list.innerHTML = '';
-                data.flood_events.forEach((evt, index) => {
-                    const li = document.createElement('li');
-                    li.textContent = evt + ' ';
-                    const btn = document.createElement('button');
-                    btn.textContent = 'Șterge';
-                    btn.onclick = () => {
-                        console.log(`Buton Șterge eveniment index ${index} apăsat.`);
-                        deleteFlood(index);
-                    };
-                    li.appendChild(btn);
-                    list.appendChild(li);
-                });
-            });
-        }
-
         function deleteFlood(index) {
-            fetch(`/delete_flood/${index}`, { method: 'POST' })
-            .then(r => r.json())
+            fetch('/delete_flood/' + index, { method: 'POST' })
+            .then(response => response.json())
             .then(data => {
                 if (data.status === 'deleted') {
-                    console.log(`Evenimentul cu index ${index} a fost șters.`);
-                    refreshFloodEvents();
+                    alert('Eveniment șters.');
+                    location.reload();
                 } else {
-                    alert('Eroare la ștergere!');
+                    alert('Eroare la ștergere.');
                 }
             });
         }
-
-        document.getElementById('msgForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const msg = document.getElementById('msgInput').value.trim();
-            if (!msg) return;
-
-            fetch('/send_message', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: msg })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.status === 'ok') {
-                    console.log(`Mesaj trimis: "${msg}"`);
-                    document.getElementById('msgInput').value = '';
-                    refreshMessages();
-                }
-            });
-        });
-
-        document.getElementById('refreshFloodBtn').addEventListener('click', refreshFloodEvents);
-
-        // Log la apasarea butoanelor LED (form submit)
-        document.getElementById('ledForm').addEventListener('submit', function(e) {
-            // Se lasă submit-ul să continue pentru a face POST-ul normal
-            const action = e.submitter.value;
-            console.log(`Buton LED ${action} apăsat.`);
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            refreshMessages();
-            refreshFloodEvents();
-        });
     </script>
 </body>
 </html>
