@@ -1,33 +1,52 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Proiect Arduino-Flask</title>
+    <meta charset="UTF-8">
+    <title>Control LED + Temperatură</title>
 </head>
 <body>
-    <h1>Mesaje salvate</h1>
-    <ul id="msgList"></ul>
+    <h1>Control LED + Temperatură</h1>
 
-    <form id="msgForm">
-        <input type="text" id="msgInput" placeholder="Scrie mesaj..." />
-        <button type="submit">Trimite</button>
+    <p><strong>Temperatura curentă:</strong> {{ temperature }} °C</p>
+    <p><strong>LED-ul este:</strong> {{ 'Aprins' if led_state else 'Stins' }}</p>
+
+    <form id="ledForm" method="post">
+        <button type="submit" name="action" value="ON">Aprinde LED</button>
+        <button type="submit" name="action" value="OFF">Stinge LED</button>
     </form>
 
-    <h2>Evenimente inundație</h2>
-    <ul id="floodList"></ul>
-    <button id="refreshFloodBtn">Reîncarcă evenimente inundație</button>
+    <hr>
+
+    <h2>Trimite un mesaj la Arduino</h2>
+    <form id="msgForm">
+        <input type="text" id="msgInput" maxlength="32" required placeholder="Mesaj de trimis...">
+        <button type="submit">Trimite mesaj</button>
+    </form>
+
+    <h3>Ultimele mesaje trimise:</h3>
+    <ul id="msgList">
+        {% for msg in messages %}
+            <li>{{ msg }}</li>
+        {% endfor %}
+    </ul>
+
+    <hr>
+    <h3>Evenimente de inundație:</h3>
+    <button id="refreshFloodBtn" type="button">Reîncarcă evenimentele</button>
+    <ul id="floodList">
+        {% for evt in flood_events %}
+            <li>
+                {{ evt }}
+                <button onclick="deleteFlood({{ loop.index0 }})">Șterge</button>
+            </li>
+        {% endfor %}
+    </ul>
 
     <script>
         function refreshMessages() {
-            console.log("Se încearcă reîncărcarea mesajelor...");
             fetch('/get_messages')
-            .then(r => {
-                console.log("Răspuns de la /get_messages:", r);
-                return r.json();
-            })
+            .then(r => r.json())
             .then(data => {
-                console.log("Mesaje primite:", data.messages);
                 const list = document.getElementById('msgList');
                 list.innerHTML = '';
                 data.messages.forEach(msg => {
@@ -35,19 +54,14 @@
                     li.textContent = msg;
                     list.appendChild(li);
                 });
-            })
-            .catch(err => console.error("Eroare la /get_messages:", err));
+            });
         }
 
         function refreshFloodEvents() {
-            console.log("Se încearcă reîncărcarea evenimentelor de inundație...");
+            console.log("Buton Reîncarcă evenimente apăsat sau funcția apelată.");
             fetch('/get_flood_events')
-            .then(r => {
-                console.log("Răspuns de la /get_flood_events:", r);
-                return r.json();
-            })
+            .then(r => r.json())
             .then(data => {
-                console.log("Evenimente de inundație primite:", data.flood_events);
                 const list = document.getElementById('floodList');
                 list.innerHTML = '';
                 data.flood_events.forEach((evt, index) => {
@@ -55,70 +69,59 @@
                     li.textContent = evt + ' ';
                     const btn = document.createElement('button');
                     btn.textContent = 'Șterge';
-                    btn.onclick = () => deleteFlood(index);
+                    btn.onclick = () => {
+                        console.log(`Buton Șterge eveniment index ${index} apăsat.`);
+                        deleteFlood(index);
+                    };
                     li.appendChild(btn);
                     list.appendChild(li);
                 });
-            })
-            .catch(err => console.error("Eroare la /get_flood_events:", err));
+            });
         }
 
         function deleteFlood(index) {
-            console.log("Se încearcă ștergerea evenimentului de inundație cu indexul:", index);
             fetch(`/delete_flood/${index}`, { method: 'POST' })
-            .then(r => {
-                console.log(`Răspuns la ștergerea evenimentului ${index}:`, r);
-                return r.json();
-            })
+            .then(r => r.json())
             .then(data => {
                 if (data.status === 'deleted') {
-                    console.log("Eveniment șters cu succes.");
+                    console.log(`Evenimentul cu index ${index} a fost șters.`);
                     refreshFloodEvents();
                 } else {
-                    console.error('Eroare la ștergerea evenimentului!');
                     alert('Eroare la ștergere!');
                 }
-            })
-            .catch(err => console.error("Eroare la ștergerea evenimentului:", err));
+            });
         }
 
         document.getElementById('msgForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const msg = document.getElementById('msgInput').value.trim();
-            console.log("Se încearcă trimiterea mesajului:", msg);
-            if (!msg) {
-                console.warn("Mesaj gol, nu se trimite.");
-                return;
-            }
+            if (!msg) return;
 
             fetch('/send_message', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: msg })
             })
-            .then(r => {
-                console.log("Răspuns de la /send_message:", r);
-                return r.json();
-            })
+            .then(r => r.json())
             .then(data => {
                 if (data.status === 'ok') {
-                    console.log("Mesaj trimis cu succes.");
+                    console.log(`Mesaj trimis: "${msg}"`);
                     document.getElementById('msgInput').value = '';
                     refreshMessages();
-                } else {
-                    console.error("Eroare la trimiterea mesajului.");
                 }
-            })
-            .catch(err => console.error("Eroare la trimiterea mesajului:", err));
+            });
         });
 
-        document.getElementById('refreshFloodBtn').addEventListener('click', () => {
-            console.log("Buton reîncarcă evenimente apăsat.");
-            refreshFloodEvents();
+        document.getElementById('refreshFloodBtn').addEventListener('click', refreshFloodEvents);
+
+        // Log la apasarea butoanelor LED (form submit)
+        document.getElementById('ledForm').addEventListener('submit', function(e) {
+            // Se lasă submit-ul să continue pentru a face POST-ul normal
+            const action = e.submitter.value;
+            console.log(`Buton LED ${action} apăsat.`);
         });
 
         document.addEventListener('DOMContentLoaded', () => {
-            console.log("Pagina încărcată, se încarcă mesajele...");
             refreshMessages();
             refreshFloodEvents();
         });

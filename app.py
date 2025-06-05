@@ -47,7 +47,7 @@ def send_message():
     if msg:
         messages.append(msg)
         if len(messages) > 10:
-            messages = messages[-10:]
+            messages[:] = messages[-10:]  # modifică lista globală, nu o reasignează
 
     return jsonify({'status': 'ok'})
 
@@ -58,10 +58,14 @@ def get_messages():
 @app.route('/flood_event', methods=['POST'])
 def flood_event():
     global flood_events
-    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    flood_events.append(f"Inundație detectată la {now}")
-    if len(flood_events) > 10:
-        flood_events = flood_events[-10:]
+    data = request.get_json()
+    # Dacă nu trimiți date JSON, poți omite această verificare
+    if data is None or data.get('flood', True):  
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        flood_events.append(f"Inundație detectată la {now}")
+        if len(flood_events) > 10:
+            flood_events[:] = flood_events[-10:]  # modifică lista globală
+
     return jsonify({'status': 'ok'})
 
 @app.route('/get_flood_events')
