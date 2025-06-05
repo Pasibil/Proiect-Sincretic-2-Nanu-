@@ -5,7 +5,7 @@ app = Flask(__name__)
 current_temp = "N/A"
 led_state = False
 messages = []  # maxim 10 mesaje
-flood_events = []  # maxim 10 evenimente de inundatie
+flood_events = []  # maxim 10 evenimente de inundație
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -56,13 +56,17 @@ def get_messages():
 @app.route('/flood_event', methods=['POST'])
 def flood_event():
     global flood_events
-    data = request.get_json()
-    evt = data.get('event', '').strip()
-    if evt:
-        flood_events.append(evt)
-        if len(flood_events) > 10:
-            flood_events = flood_events[-10:]
+    # Nu așteptăm un mesaj explicit, ci doar semnalul flood, așa că adăugăm timestamp
+    import datetime
+    now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    flood_events.append(f"Inundație detectată la {now_str}")
+    if len(flood_events) > 10:
+        flood_events = flood_events[-10:]
     return jsonify({'status': 'ok'})
+
+@app.route('/get_flood_events')
+def get_flood_events():
+    return jsonify({'flood_events': flood_events})
 
 @app.route('/delete_flood/<int:index>', methods=['POST'])
 def delete_flood(index):

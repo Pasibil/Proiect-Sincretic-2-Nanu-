@@ -33,6 +33,7 @@
 
     <hr>
     <h3>Evenimente de inundație:</h3>
+    <button id="refreshFloodBtn" type="button">Reîncarcă evenimentele</button>
     <ul id="floodList">
         {% for evt in flood_events %}
             <li>
@@ -57,12 +58,33 @@
             });
         }
 
+        function refreshFloodEvents() {
+            fetch('/get_flood_events')
+            .then(response => response.json())
+            .then(data => {
+                const list = document.getElementById('floodList');
+                list.innerHTML = '';
+                data.flood_events.forEach((evt, index) => {
+                    const li = document.createElement('li');
+                    li.textContent = evt + ' ';
+                    const btn = document.createElement('button');
+                    btn.textContent = 'Șterge';
+                    btn.onclick = function() { deleteFlood(index); };
+                    li.appendChild(btn);
+                    list.appendChild(li);
+                });
+            });
+        }
+
         function deleteFlood(index) {
             fetch(`/delete_flood/${index}`, { method: 'POST' })
             .then(response => response.json())
             .then(data => {
-                if (data.status === 'deleted') location.reload();
-                else alert('Eroare la ștergerea evenimentului');
+                if (data.status === 'deleted') {
+                    refreshFloodEvents();
+                } else {
+                    alert('Eroare la ștergerea evenimentului');
+                }
             });
         }
 
@@ -85,7 +107,12 @@
             });
         });
 
-        document.addEventListener('DOMContentLoaded', refreshMessages);
+        document.getElementById('refreshFloodBtn').addEventListener('click', refreshFloodEvents);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshMessages();
+            // flood_events sunt încărcate inițial din server, dar pot fi actualizate oricând cu butonul
+        });
     </script>
 </body>
 </html>
