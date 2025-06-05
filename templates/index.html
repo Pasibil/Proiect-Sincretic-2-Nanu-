@@ -13,6 +13,32 @@
             })
             .catch(err => alert('Eroare la refresh: ' + err));
         }
+
+        function sendMessage() {
+            const msgInput = document.getElementById('newMessage');
+            const message = msgInput.value.trim();
+            if (!message) {
+                alert('Introduceți un mesaj valid!');
+                return;
+            }
+
+            fetch('/send_message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    alert('Mesaj trimis!');
+                    msgInput.value = '';
+                    location.reload();
+                } else {
+                    alert('Eroare la trimiterea mesajului.');
+                }
+            })
+            .catch(() => alert('Eroare la trimiterea mesajului.'));
+        }
     </script>
 </head>
 <body>
@@ -33,6 +59,12 @@
             <li>Nu există mesaje.</li>
         {% endfor %}
     </ul>
+
+    <!-- Zona noua pentru trimiterea mesajului -->
+    <h3>Trimite un mesaj nou către Arduino</h3>
+    <input type="text" id="newMessage" placeholder="Scrie mesajul aici..." maxlength="100" style="width: 300px;" />
+    <button onclick="sendMessage()">Trimite mesaj</button>
+    <br><br>
 
     <h2>Evenimente Inundații</h2>
     <ul>

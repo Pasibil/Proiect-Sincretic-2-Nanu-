@@ -58,7 +58,6 @@ def get_messages():
 def flood_event():
     global flood_events
     data = request.get_json()
-    # Poate veni fără conținut sau doar cu flood=True
     if data is None or data.get('flood', True):
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         flood_events.append(f"Inundație detectată la {now}")
@@ -89,8 +88,6 @@ def sync_flood_events():
 
 @app.route('/refresh_lists', methods=['POST'])
 def refresh_lists():
-    # Rută care poate fi apelată din interfață pentru a trimite confirmarea de refresh
-    # Actualizarea reală se face periodic în python_local.py
     return jsonify({'status': 'ok'})
 
 if __name__ == '__main__':
