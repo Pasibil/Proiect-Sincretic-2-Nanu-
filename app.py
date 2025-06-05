@@ -8,16 +8,21 @@ led_state = False
 messages = []
 flood_events = []
 
+# Comandă temporară transmisă către Python local (ex: {"led": "ON"})
+current_command = {}
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    global led_state
+    global led_state, current_command
 
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'ON':
             led_state = True
+            current_command = {"led": "ON"}
         elif action == 'OFF':
             led_state = False
+            current_command = {"led": "OFF"}
 
     return render_template('index.html',
                            temperature=current_temp,
@@ -42,12 +47,10 @@ def send_message():
     global messages
     data = request.get_json()
     msg = data.get('message', '').strip()
-
     if msg:
         messages.append(msg)
         if len(messages) > 10:
             messages[:] = messages[-10:]
-
     return jsonify({'status': 'ok'})
 
 @app.route('/get_messages')
@@ -63,7 +66,6 @@ def flood_event():
         flood_events.append(f"Inundație detectată la {now}")
         if len(flood_events) > 10:
             flood_events[:] = flood_events[-10:]
-
     return jsonify({'status': 'ok'})
 
 @app.route('/get_flood_events')
@@ -89,6 +91,19 @@ def sync_flood_events():
 @app.route('/refresh_lists', methods=['POST'])
 def refresh_lists():
     return jsonify({'status': 'ok'})
+
+# -----------------------
+# ✅ Noile două endpoint-uri
+# -----------------------
+@app.route('/get_command', methods=['GET'])
+def get_command():
+    return jsonify(current_command)
+
+@app.route('/ack_command', methods=['POST'])
+def ack_command():
+    global current_command
+    current_command = {}  # șterge comanda după procesare
+    return jsonify({'status': 'acknowledged'})
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000)
